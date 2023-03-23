@@ -1,0 +1,18 @@
+[package]
+name = "doctorat-contest-backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jsonwebtoken = "8"
+serde = { version = "1.0", features = ["derive"] }
+actix-web = "4.3"
+sqlx = { version = "0.6.2", features = [
+  "runtime-async-std-native-tls",
+  "mysql",
+] }
+dotenv = "0.15"
+chrono = "0.4.23"
+lettre = "0.10"
