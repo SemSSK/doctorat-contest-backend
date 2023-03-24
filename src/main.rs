@@ -1,3 +1,6 @@
+mod jwt_handler;
+mod user;
+
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use sqlx::MySqlPool;
