@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use sqlx::Decode;
+use sqlx::Type;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Decode)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub enum Role {
     Admin,
     CFD,
@@ -24,4 +24,6 @@ pub struct User {
     pub email: String,
     pub password: Option<String>,
     pub role: Option<Role>,
+    pub encoded: Option<String>,
+    pub specialty: Option<String>,
 }

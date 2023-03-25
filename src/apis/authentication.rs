@@ -9,13 +9,20 @@ use crate::{
 async fn verify_user(user: user::User, pool: &sqlx::MySqlPool) -> Option<user::User> {
     match sqlx::query_as!(
         user::User,
-        "select id as `id?`,email, password as `password?`, role as `role: user::Role` from Edl.User where email = ?",
+        "select 
+            id as `id?`,
+            email, password as `password?`, 
+            role as `role: user::Role`,
+            encoded as 'encoded?',
+            specialty as 'specialty'
+        from Edl.User where email = ?",
         user.email
     )
     .fetch_one(pool)
-    .await {
-      Ok(real_user) if real_user.password == user.password => Some(real_user),
-      _ => None,
+    .await
+    {
+        Ok(real_user) if real_user.password == user.password => Some(real_user),
+        _ => None,
     }
 }
 

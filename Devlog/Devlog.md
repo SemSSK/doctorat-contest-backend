@@ -42,3 +42,5 @@ Account management will be implemented by 5 Http apis only accessible by an admi
 
 * delete http api that deletes a user row. Returns 404 in case of not found, 200 in the happy path.
 
+##### finished 25/03/2023 22:26
+
