@@ -18,7 +18,7 @@ async fn get_user_from_db(id: i32, pool: &sqlx::MySqlPool) -> sqlx::Result<user:
 }
 
 #[get("/{id}")]
-async fn get_user(
+pub async fn get_user(
     path: web::Path<(i32,)>,
     data: web::Data<ServerState>,
     request: HttpRequest,

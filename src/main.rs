@@ -52,6 +52,7 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::authentication::login)
                     .service(apis::authentication::refresh),
             )
+            .service(web::scope("/admin").service(apis::admin::get_user))
             .service(cors)
     })
     .bind((serv_address, serv_port))?
