@@ -1,7 +1,3 @@
-/// this module contains Authentication related functions which are
-/// Http Post Login
-/// Http Get  Refresh
-/// Security wrapping function
 use actix_web::{get, post, web, Either, HttpRequest, HttpResponse, Responder};
 
 use crate::{
