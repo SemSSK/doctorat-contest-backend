@@ -33,7 +33,7 @@ pub async fn login(
         .map(jwt_handler::encode_to_jwt)
     {
         Some(jwt) => Either::Right(jwt),
-        None => Either::Left(HttpResponse::Forbidden().finish()),
+        None => Either::Left(HttpResponse::Forbidden().body("Wrong credentials")),
     }
 }
 
