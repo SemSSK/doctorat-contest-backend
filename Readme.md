@@ -32,6 +32,7 @@ check https://www.rust-lang.org/tools and select your favorite editor and follow
 ## Using the project
 * Clone the repository
 * open the project in code editor
+* check .env file and verify if the database url exists change it if necessary 
 * open a terminal
 * use the following commands:
 
