@@ -23,4 +23,4 @@ To avoid CSRF the JWT will expire after 15 minutes.
 
 To avoid having the client login every 15 minutes there will be a Get endpoint that refreshes the expiry of the JWT.
 
-The JWT will contain the id, email, Role of the client. 
+The JWT will contain the id, email, Role of the client.

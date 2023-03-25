@@ -1,3 +1,4 @@
+mod apis;
 mod jwt_handler;
 mod user;
 
@@ -7,7 +8,7 @@ use sqlx::MySqlPool;
 use std::env;
 
 #[derive(Debug, Clone)]
-struct ServerState {
+pub struct ServerState {
     pool: MySqlPool,
 }
 
@@ -45,6 +46,11 @@ async fn main() -> std::io::Result<()> {
                 middleware::DefaultHeaders::new()
                     .add(("Access-Control-Allow-Origin", "http://localhost:5173"))
                     .add(("Access-Control-Allow-Headers", "*")),
+            )
+            .service(
+                web::scope("/auth")
+                    .service(apis::authentication::login)
+                    .service(apis::authentication::refresh),
             )
             .service(cors)
     })
