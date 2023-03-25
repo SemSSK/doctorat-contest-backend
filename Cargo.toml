@@ -16,3 +16,5 @@ sqlx = { version = "0.6.2", features = [
 dotenv = "0.15"
 chrono = "0.4.23"
 lettre = "0.10"
+rand = "0.8"
+bcrypt = "0.14"
