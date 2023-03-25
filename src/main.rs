@@ -2,7 +2,7 @@ mod apis;
 mod jwt_handler;
 mod user;
 
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware, web, App, Either, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use sqlx::MySqlPool;
 use std::env;
@@ -52,7 +52,11 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::authentication::login)
                     .service(apis::authentication::refresh),
             )
-            .service(web::scope("/admin").service(apis::admin::get_user))
+            .service(
+                web::scope("/admin")
+                    .service(apis::admin::get_user)
+                    .service(apis::admin::get_users),
+            )
             .service(cors)
     })
     .bind((serv_address, serv_port))?

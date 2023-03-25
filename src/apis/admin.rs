@@ -37,3 +37,31 @@ pub async fn get_user(
     };
     Either::Right(web::Json(u))
 }
+
+async fn get_users_from_db(pool: &sqlx::MySqlPool) -> sqlx::Result<Vec<user::User>> {
+    sqlx::query_as!(
+        user::User,
+        r#"
+      select id as 'id?', email, password as 'password?', role as 'role?: user::Role'
+      from Edl.User
+    "#
+    )
+    .fetch_all(pool)
+    .await
+}
+
+#[get("/")]
+async fn get_users(
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> Either<HttpResponse, impl Responder> {
+    let Some(f) = secure_function(|_| true, |_| get_users_from_db(&data.pool),&[user::Role::Admin], request) else {
+      return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    let Ok(users) = f.await else {
+      return Either::Left(HttpResponse::NotFound().finish());
+    };
+
+    Either::Right(web::Json(users))
+}
