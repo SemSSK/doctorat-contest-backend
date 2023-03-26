@@ -1,9 +1,9 @@
-use actix_web::{get, post, web, Either, HttpRequest, HttpResponse, Responder};
-
+use crate::model::{user, *};
 use crate::{
     jwt_handler::{self, encode_to_jwt},
-    user, ServerState,
+    ServerState,
 };
+use actix_web::{get, post, web, Either, HttpRequest, HttpResponse, Responder};
 
 /// Checks if the user input is the same as the user in the database
 async fn verify_user(user: user::User, pool: &sqlx::MySqlPool) -> Option<user::User> {
@@ -12,7 +12,7 @@ async fn verify_user(user: user::User, pool: &sqlx::MySqlPool) -> Option<user::U
         "select 
             id as `id?`,
             email, password as `password?`, 
-            role as `role: user::Role`,
+            role as `role?: user::Role`,
             encoded as 'encoded?',
             specialty as 'specialty'
         from Edl.User where email = ?",

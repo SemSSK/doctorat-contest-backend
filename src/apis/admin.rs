@@ -1,5 +1,6 @@
 use crate::apis::authentication::secure_function;
-use crate::{user, ServerState};
+use crate::model::user;
+use crate::ServerState;
 use actix_web::{delete, get, post, put, web, Either, HttpRequest, HttpResponse, Responder};
 use rand::distributions::Alphanumeric;
 use rand::Rng;

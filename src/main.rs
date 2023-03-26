@@ -1,6 +1,14 @@
+/// contains the rest apis that are consumed by the client
 mod apis;
+
+/// contains representations of database models
+mod model;
+
+/// does nothing for now
+mod email;
+
+/// manages the jwt creation and verification
 mod jwt_handler;
-mod user;
 
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
