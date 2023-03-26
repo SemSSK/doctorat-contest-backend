@@ -1,5 +1,4 @@
 use actix_web::{put, web, HttpRequest, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
 
 use crate::apis::authentication::secure_function;
 use crate::{model::user, ServerState};

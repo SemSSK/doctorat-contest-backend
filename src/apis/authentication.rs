@@ -1,4 +1,4 @@
-use crate::model::{user, *};
+use crate::model::user;
 use crate::{
     jwt_handler::{self, encode_to_jwt},
     ServerState,

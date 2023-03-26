@@ -46,7 +46,7 @@ mod db {
         .await
     }
 
-    pub async fn get_user_by_email(
+    pub async fn _get_user_by_email(
         email: &str,
         pool: &sqlx::MySqlPool,
     ) -> sqlx::Result<user::User> {
