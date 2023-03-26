@@ -44,3 +44,10 @@ Account management will be implemented by 5 Http apis only accessible by an admi
 
 ##### finished 25/03/2023 22:26
 
+
+
+# Entry 3 Basic account modification
+##### started 26/03/2023 14:51
+
+Adding the option for the users to change their email and password note that specialty cannot be changed
+security will be implemented directly into the sql request as it will use conditional update queries
