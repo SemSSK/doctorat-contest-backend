@@ -68,6 +68,11 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::admin::update_user)
                     .service(apis::admin::delete_user),
             )
+            .service(
+                web::scope("/account")
+                    .service(apis::account::change_email)
+                    .service(apis::account::change_password),
+            )
             .service(cors)
     })
     .bind((serv_address, serv_port))?
