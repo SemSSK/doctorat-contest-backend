@@ -64,3 +64,46 @@ started 26/03/2023 15:17
 ```
 
 # Entry 4 Virtual platform and Session creation and management
+```
+started 26/03/2023 19:08
+```
+virtual platform is created by the admin who affects it a name and a VD.
+
+one post api should do the trick
+
+```
+finished 26/03/2023 19:41 (may need tweeking) 
+```
+
+# Entry 5 Adding bulk insert of user data
+```
+started 26/03/2023 00:05
+```
+
+this is necessary as it allows the client to load multiple user data like in a csv and insert it
+
+to achieve this it is necessary to change tactics in our query method and use query builder instead of query! macro
+
+we use it like so: 
+
+```rust
+   sqlx::QueryBuilder::new("insert into Edl.User(email,password,role,specialty)") // creating the request 
+          .push_values(users, // giving it the data source 
+          |mut b,u| {  // closure detailing how to map the data 
+            b.push_bind(u.email) 
+              .push_bind(u.password)
+              .push_bind(u.role)
+              .push_bind(u.specialty);
+          })
+          .build()
+          .execute(pool)
+          .await?;
+```
+
+Note that the api receives a json array object as the csv parsing needs to be done on the client side this allows it to be more versitile on the data types it receives not just csv.
+
+```
+started 26/03/2023 00:22
+```
+
+***And with that administrator apis should be done now a peer review is the next step***

@@ -1,11 +1,11 @@
-use crate::apis::authentication::secure_function;
 use crate::model::user;
 use crate::ServerState;
+use crate::{apis::authentication::secure_function, model::virtual_platform::VirtualPlatform};
 use actix_web::{delete, get, post, put, web, Either, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
 mod db {
-    use crate::model::user;
+    use crate::model::{user, virtual_platform::VirtualPlatform};
     use rand::{distributions::Alphanumeric, Rng};
 
     /// Gets one user from database by id
@@ -78,6 +78,8 @@ mod db {
         s
     }
 
+    /// Creates a new user and adds it to database
+    /// Returns error in case of duplicate.
     pub async fn insert_user(
         email: String,
         role: user::Role,
@@ -118,6 +120,7 @@ mod db {
         Ok(())
     }
 
+    /// deletes a user given an id returns error in case of user not found
     pub async fn delete_user(id: i32, pool: &sqlx::MySqlPool) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
@@ -128,6 +131,57 @@ mod db {
         )
         .execute(pool)
         .await?;
+        Ok(())
+    }
+
+    pub async fn create_users(
+      users: Vec<user::User>,
+      pool: &sqlx::MySqlPool
+    ) -> sqlx::Result<()> {
+
+      let users = users.into_iter().map(|u| user::User {
+        password: Some(generate_password()),
+        ..u
+      });
+
+      sqlx::QueryBuilder::new("insert into Edl.User(email,password,role,specialty)")
+          .push_values(users, |mut b,u| {
+            b.push_bind(u.email)
+              .push_bind(u.password)
+              .push_bind(u.role)
+              .push_bind(u.specialty);
+          })
+          .build()
+          .execute(pool)
+          .await?;
+
+      Ok(())
+    }
+
+    /// creates a virtual platform
+    ///
+    /// Fails in case of
+    pub async fn create_virtual_platform(
+        vp: VirtualPlatform,
+        pool: &sqlx::MySqlPool,
+    ) -> sqlx::Result<()> {
+        if sqlx::query!(
+            r#"
+          Insert into Edl.VirtualPlatform
+          (vd_id, name)
+          Select id, ?
+          from Edl.User
+          where id = ? and role = ?
+        "#,
+            vp.name,
+            vp.vd_id,
+            user::Role::ViceDoyen
+        )
+        .execute(pool)
+        .await?
+        .rows_affected() == 0 {
+          return Err(sqlx::Error::RowNotFound);
+        }
         Ok(())
     }
 }
@@ -204,6 +258,28 @@ async fn create_user(
     Either::Right(HttpResponse::Ok().finish())
 }
 
+#[post("/multiple")]
+async fn create_users(
+  users: web::Json<Vec<user::User>>,
+  data: web::Data<ServerState>,
+  request: HttpRequest,
+) -> HttpResponse {
+  let users = users.0;
+  let Some(f) = secure_function(
+    |_| true, 
+    |_| db::create_users(users, &data.pool), 
+    &[user::Role::Admin], 
+    request) else {
+      return HttpResponse::Forbidden().finish();
+  };
+
+  let Ok(_) = f.await else {
+    return HttpResponse::BadRequest().finish();
+  };
+
+  HttpResponse::Ok().finish()
+}
+
 #[put("/")]
 async fn update_user(
     u: web::Json<user::User>,
@@ -245,4 +321,27 @@ pub async fn delete_user(
       return Either::Left(HttpResponse::NotFound().finish());
     };
     Either::Right(HttpResponse::Ok().finish())
+}
+
+#[post("/virtual-platform")]
+pub async fn create_virtual_platform(
+    vp: web::Json<VirtualPlatform>,
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> impl Responder {
+    let vp = vp.0;
+    
+    let Some(f) = secure_function(
+      |_| true, 
+      |_| db::create_virtual_platform(vp, &data.pool),
+      &[user::Role::Admin], 
+      request) else {
+      return HttpResponse::Forbidden().finish();
+    };
+
+    let Ok(_) = f.await else {
+      return HttpResponse::NotFound().finish();
+    };
+
+    HttpResponse::Ok().finish()
 }

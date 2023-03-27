@@ -65,8 +65,10 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::admin::get_user)
                     .service(apis::admin::get_users)
                     .service(apis::admin::create_user)
+                    .service(apis::admin::create_users)
                     .service(apis::admin::update_user)
-                    .service(apis::admin::delete_user),
+                    .service(apis::admin::delete_user)
+                    .service(apis::admin::create_virtual_platform),
             )
             .service(
                 web::scope("/account")
