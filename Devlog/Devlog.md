@@ -107,3 +107,12 @@ started 26/03/2023 00:22
 ```
 
 ***And with that administrator apis should be done now a peer review is the next step***
+
+
+# Entry 6 Adding Virtual Platform management from the Vice doyen
+
+the vice doyen needs to:
+
+* create and alter a session which is done with a post rest api.
+* affecting applicants and monitors to a session two  post rest apis.
+* make announcements to sessions one post rest api.

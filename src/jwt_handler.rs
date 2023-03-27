@@ -20,7 +20,6 @@ impl Claims {
             email: user.email,
             password: None,
             role: user.role,
-            encoded: None,
             specialty: user.specialty,
         };
         Self {

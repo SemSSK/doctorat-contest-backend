@@ -17,7 +17,6 @@ mod db {
             id as 'id?', 
             email, password as 'password?', 
             role as 'role?: user::Role',
-            encoded as 'encoded?',
             specialty as 'specialty?'
           from Edl.User
           where id = ?
@@ -37,7 +36,6 @@ mod db {
           id as 'id?', 
           email, password as 'password?', 
           role as 'role?: user::Role',
-          encoded as 'encoded?',
           specialty as 'specialty?'
         from Edl.User
       "#
@@ -57,7 +55,6 @@ mod db {
               id as 'id?', 
               email, password as 'password?', 
               role as 'role?: user::Role',
-              encoded as 'encoded?',
               specialty as 'specialty?'
               from Edl.User
             where email = ?

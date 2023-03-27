@@ -24,6 +24,5 @@ pub struct User {
     pub email: String,
     pub password: Option<String>,
     pub role: Option<Role>,
-    pub encoded: Option<String>,
     pub specialty: Option<String>,
 }
