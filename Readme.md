@@ -41,3 +41,17 @@ check https://www.rust-lang.org/tools and select your favorite editor and follow
   cargo test # runs the unit tests
   cargo run # runs the project
 ```
+
+## Database 
+
+
+<p style="color:red;" align="center">
+🚧 Work in progress 🚧
+</p>
+
+![Database](./Database.png)
+
+<p style="color:red;" align="center">
+🚧 Work in progress 🚧
+</p>
+
