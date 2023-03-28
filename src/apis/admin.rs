@@ -17,6 +17,7 @@ mod db {
             id as 'id?', 
             email, password as 'password?', 
             role as 'role?: user::Role',
+            domaine as 'domaine?',
             specialty as 'specialty?'
           from Edl.User
           where id = ?
@@ -36,6 +37,7 @@ mod db {
           id as 'id?', 
           email, password as 'password?', 
           role as 'role?: user::Role',
+          domaine as 'domaine?',
           specialty as 'specialty?'
         from Edl.User
       "#
@@ -55,6 +57,7 @@ mod db {
               id as 'id?', 
               email, password as 'password?', 
               role as 'role?: user::Role',
+              domaine as 'domaine?',
               specialty as 'specialty?'
               from Edl.User
             where email = ?
@@ -80,18 +83,20 @@ mod db {
     pub async fn insert_user(
         email: String,
         role: user::Role,
+        domaine: String,
         specialty: String,
         pool: &sqlx::MySqlPool,
     ) -> sqlx::Result<()> {
         let password = generate_password();
         sqlx::query!(
             r#"
-          insert into Edl.User (email,password,role,specialty) values
-          (?,?,?,?)
+          insert into Edl.User (email,password,role,domaine,specialty) values
+          (?,?,?,?,?)
         "#,
             email,
             password,
             role,
+            domaine,
             specialty
         )
         .execute(pool)
@@ -104,11 +109,12 @@ mod db {
         sqlx::query!(
             r#"
     update Edl.User
-    set email = ?, role = ?, specialty = ?
+    set email = ?, role = ?, domaine = ?,specialty = ?
     where id = ?
   "#,
             u.email,
             u.role,
+            u.domaine,
             u.specialty,
             u.id
         )
@@ -141,11 +147,12 @@ mod db {
         ..u
       });
 
-      sqlx::QueryBuilder::new("insert into Edl.User(email,password,role,specialty)")
+      sqlx::QueryBuilder::new("insert into Edl.User(email,password,role,domaine,specialty)")
           .push_values(users, |mut b,u| {
             b.push_bind(u.email)
               .push_bind(u.password)
               .push_bind(u.role)
+              .push_bind(u.domaine)
               .push_bind(u.specialty);
           })
           .build()
@@ -224,6 +231,7 @@ async fn get_users(
 struct CreateUserInput {
     email: String,
     role: user::Role,
+    domaine: String,
     specialty: String,
 }
 
@@ -236,12 +244,13 @@ async fn create_user(
     let CreateUserInput {
         email,
         role,
+        domaine,
         specialty,
     } = u.0;
 
     let Some(f) = secure_function(
         |_| true,
-        |_| db::insert_user(email, role, specialty, &data.pool),
+        |_| db::insert_user(email, role, domaine, specialty, &data.pool),
         &[user::Role::Admin],
         request,
     ) else {

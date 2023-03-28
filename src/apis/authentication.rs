@@ -13,6 +13,7 @@ async fn verify_user(user: user::User, pool: &sqlx::MySqlPool) -> Option<user::U
             id as `id?`,
             email, password as `password?`, 
             role as `role?: user::Role`,
+            domaine as 'domaine?',
             specialty as 'specialty'
         from Edl.User where email = ?",
         user.email
