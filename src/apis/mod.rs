@@ -3,9 +3,15 @@
 /// And should contain virtual platform management
 pub mod admin;
 
+/// this module contains Account apis
+/// which allow the user to modify his email and password
 pub mod account;
+
 /// this module contains Authentication related functions which are
 /// Http Post Login
 /// Http Get  Refresh
 /// Security wrapping function
 pub mod authentication;
+
+/// this module contains apis that allow the ViceDoyen to manage the  virtual platform
+pub mod virtual_platform;

@@ -54,7 +54,7 @@ mod db {
             user::User,
             r#"
             select 
-              id as 'id?', 
+              id as 'id?',
               email, password as 'password?', 
               role as 'role?: user::Role',
               domaine as 'domaine?',

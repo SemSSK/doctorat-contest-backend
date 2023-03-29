@@ -107,13 +107,17 @@ we use it like so:
 Note that the api receives a json array object as the csv parsing needs to be done on the client side this allows it to be more versitile on the data types it receives not just csv.
 
 ```
-started 26/03/2023 00:22
+finished 26/03/2023 00:22
 ```
 
 ***And with that administrator apis should be done now a peer review is the next step***
 
 
 # Entry 6 Adding Virtual Platform management from the Vice doyen
+
+```
+started 28/03/2023 16:48
+```
 
 the vice doyen needs to:
 
