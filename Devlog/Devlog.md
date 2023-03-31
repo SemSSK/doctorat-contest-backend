@@ -137,3 +137,16 @@ started 31/03/2023 13:45
 finished 31/03/2023 14:46
 ```
 ***And with that vice_doyen apis should be done now a peer review is the next step***
+
+
+# Entry 8 the next step is adding the CFD's Apis
+
+```
+started 31/03/2023 21:34
+```
+
+the CFD roles boils down to:
+* affecting the monitors to the session
+* affecting the correctors to the results of the students (basically creating a row in the Result table).
+* displaying the results once the Results are filled by the correctors
+
