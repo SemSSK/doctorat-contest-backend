@@ -4,11 +4,11 @@ symbol meaning
 👍 validated, ✅ implemented
 
 
-1. Setup the project with the dependencies ✅
-2. Implement the account system with authentication and authorization. ✅
-3. adding account management. ✅
-3. Setup the virtual platform system.
-4. Add Session Management.
+1. Setup the project with the dependencies ✅ 👍
+2. Implement the account system with authentication and authorization. ✅ 👍
+3. adding account management. ✅ 👍
+3. Setup the virtual platform system. ✅ 👍
+4. Add Session Management. ✅
 5. Add the result management system.
 6. Add theme creation,choices,and validation. 
 
@@ -128,3 +128,12 @@ the vice doyen needs to:
 ```
 finished 31/03/2023 13:45
 ```
+
+# Entry 7 adding missing get request for the vice_doyen
+```
+started 31/03/2023 13:45
+```
+```
+finished 31/03/2023 14:46
+```
+***And with that vice_doyen apis should be done now a peer review is the next step***

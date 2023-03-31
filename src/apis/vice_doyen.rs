@@ -176,6 +176,30 @@ mod db {
 
         use crate::model::{module, user};
 
+        pub async fn get_modules(
+            vd: user::User,
+            s_id: i32,
+            pool: &MySqlPool
+        ) -> sqlx::Result<Vec<module::Module>> {
+            sqlx::query_as!(
+                module::Module,
+                r#"
+                select
+                    m.code,
+                    m.session_id as 'session_id?'
+                from 
+                    Edl.Module m, Edl.Session s
+                where
+                    m.session_id = ? and
+                    m.session_id = s.id and
+                    s.virtual_platform_id = ?
+                "#,
+                s_id,
+                vd.id
+            ).fetch_all(pool)
+            .await
+        }
+
         pub async fn create_module(
             vd: user::User,
             m: module::Module,
@@ -244,7 +268,7 @@ mod db {
     }
 
     pub mod applicant {
-        use sqlx::{MySql, MySqlPool};
+        use sqlx::MySqlPool;
 
         use crate::{apis::vice_doyen::ApplicantAffectation, model::user};
 
@@ -252,21 +276,80 @@ mod db {
             vd: user::User,
             pool: &MySqlPool,
         ) -> sqlx::Result<Vec<user::User>> {
-            todo!()
+            sqlx::query_as!(
+                user::User,
+                r#"
+                select
+                    id as 'id?', 
+                    email,
+                    "" as 'password?', 
+                    role as 'role?: user::Role',
+                    domaine as 'domaine?',
+                    specialty as 'specialty?'
+                from
+                    Edl.User
+                where
+                    domaine = ? and
+                    role = "Applicant"
+                "#,
+                vd.domaine
+            ).fetch_all(pool)
+            .await
         }
         pub async fn get_current_applicants(
             vd: user::User,
             session_id: i32,
             pool: &MySqlPool,
         ) -> sqlx::Result<Vec<user::User>> {
-            todo!()
+            sqlx::query_as!(
+                user::User,
+                r#"
+                select
+                    u.id as 'id?', 
+                    u.email,
+                    "" as 'password?', 
+                    u.role as 'role?: user::Role',
+                    u.domaine as 'domaine?',
+                    u.specialty as 'specialty?'
+                from
+                    Edl.User u, Edl.Session s, Edl.applicant_affectation a
+                where 
+                    s.id = ? and
+                    s.virtual_platform_id = ? and
+                    a.session_id = s.id and
+                    a.applicant_id = u.id
+                "#,
+                session_id,
+                vd.id
+            ).fetch_all(pool)
+            .await
         }
         pub async fn get_applicant(
             vd: user::User,
             app_id: i32,
             pool: &MySqlPool,
         ) -> sqlx::Result<user::User> {
-            todo!()
+            sqlx::query_as!(
+                user::User,
+                r#"
+                select
+                    id as 'id?', 
+                    email,
+                    "" as 'password?', 
+                    role as 'role?: user::Role',
+                    domaine as 'domaine?',
+                    specialty as 'specialty?'
+                from 
+                    Edl.User
+                where
+                    id = ? and
+                    domaine = ? and
+                    role = "Applicant"
+                "#,
+                app_id,
+                vd.domaine
+            ).fetch_one(pool)
+            .await
         }
 
         pub async fn affect_applicant(
@@ -342,6 +425,32 @@ mod db {
         use sqlx::MySqlPool;
 
         use crate::model::{session, user};
+        
+        pub async fn get_announcement(
+            vd: user::User,
+            session_id: i32,
+            pool: &MySqlPool
+        ) -> sqlx::Result<Vec<session::Announcement>> {
+            sqlx::query_as!(
+                session::Announcement,
+                r#"
+                select 
+                    a.id as 'id?',
+                    a.title,
+                    a.content,
+                    a.session_id 
+                from 
+                    Edl.Announcement a, Edl.Session s
+                where
+                    a.session_id = s.id and
+                    s.id = ? and
+                    s.virtual_platform_id = ?
+                "#,
+                session_id,
+                vd.id
+            ).fetch_all(pool)
+            .await
+        }
 
         pub async fn create_announcement(
             vd: user::User,
@@ -498,6 +607,27 @@ pub async fn delete_session(
 
 // Module management
 
+#[get("/module/session={id}")]
+pub async fn get_modules(
+    s_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let s_id = s_id.0;
+    let Some(f) = secure_function(
+        |_| true,
+        |u| db::dmodule::get_modules(u, s_id, &data.pool),
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(ms) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    Either::Right(web::Json(ms))
+}
+
 #[post("/module")]
 pub async fn create_module(
     module: web::Json<module::Module>,
@@ -534,6 +664,67 @@ pub struct ApplicantAffectation {
     pub session_id: i32,
     pub applicant_id: i32,
     pub encoding: String,
+}
+
+#[get("/applicant")]
+pub async fn get_possible_applicants(
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::applicant::get_possible_applicants(u, &data.pool), 
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(apps) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    Either::Right(web::Json(apps))
+}
+
+#[get("/applicant/session={id}")]
+pub async fn get_current_applicants(
+    s_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let s_id = s_id.0;
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::applicant::get_current_applicants(u, s_id, &data.pool), 
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(apps) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    Either::Right(web::Json(apps))
+}
+
+#[get("/applicant/{id}")]
+pub async fn get_applicant(
+    u_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let u_id = u_id.0;
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::applicant::get_applicant(u, u_id, &data.pool), 
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(apps) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    Either::Right(web::Json(apps))
 }
 
 #[post("/applicant")]
@@ -577,6 +768,28 @@ pub async fn delete_applicant(
 }
 
 // Announcement Management
+
+#[get("/announcement/session={id}")]
+pub async fn get_announcement(
+    s_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let s_id = s_id.0;
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::announcement::get_announcement(u, s_id, &data.pool), 
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(ans) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish()); 
+    };
+    Either::Right(web::Json(ans))
+}
+
 #[post("/announcement")]
 pub async fn create_announcement(
     announcement: web::Json<session::Announcement>,
