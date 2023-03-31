@@ -124,3 +124,7 @@ the vice doyen needs to:
 * create and alter a session which is done with a post rest api.
 * affecting applicants and monitors to a session two  post rest apis.
 * make announcements to sessions one post rest api.
+
+```
+finished 31/03/2023 13:45
+```
