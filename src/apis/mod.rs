@@ -14,4 +14,4 @@ pub mod account;
 pub mod authentication;
 
 /// this module contains apis that allow the ViceDoyen to manage the  virtual platform
-pub mod virtual_platform;
+pub mod vice_doyen;

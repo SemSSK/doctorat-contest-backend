@@ -15,7 +15,8 @@ mod db {
             r#"
           select 
             id as 'id?', 
-            email, password as 'password?', 
+            email,
+            "" as 'password?', 
             role as 'role?: user::Role',
             domaine as 'domaine?',
             specialty as 'specialty?'
@@ -33,9 +34,10 @@ mod db {
         sqlx::query_as!(
             user::User,
             r#"
-        select 
+        select  
           id as 'id?', 
-          email, password as 'password?', 
+          email, 
+          "" as 'password?', 
           role as 'role?: user::Role',
           domaine as 'domaine?',
           specialty as 'specialty?'
@@ -55,7 +57,8 @@ mod db {
             r#"
             select 
               id as 'id?',
-              email, password as 'password?', 
+              email, 
+              "" as 'password?', 
               role as 'role?: user::Role',
               domaine as 'domaine?',
               specialty as 'specialty?'

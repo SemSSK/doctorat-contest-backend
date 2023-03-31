@@ -71,6 +71,20 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::admin::create_virtual_platform),
             )
             .service(
+                web::scope("/vice-doyen")
+                    .service(apis::vice_doyen::create_module)
+                    .service(apis::vice_doyen::delete_module)
+                    .service(apis::vice_doyen::affect_applicant)
+                    .service(apis::vice_doyen::delete_applicant)
+                    .service(apis::vice_doyen::create_announcement)
+                    .service(apis::vice_doyen::delete_announcement)
+                    .service(apis::vice_doyen::create_session)
+                    .service(apis::vice_doyen::get_session)
+                    .service(apis::vice_doyen::get_sessions)
+                    .service(apis::vice_doyen::update_session)
+                    .service(apis::vice_doyen::delete_session),
+            )
+            .service(
                 web::scope("/account")
                     .service(apis::account::change_email)
                     .service(apis::account::change_password),

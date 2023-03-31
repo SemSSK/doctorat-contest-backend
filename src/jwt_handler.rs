@@ -14,7 +14,7 @@ struct Claims {
 
 impl Claims {
     pub fn new(user: User) -> Self {
-        let exp = (Utc::now() + Duration::minutes(15)).timestamp_millis() as usize;
+        let exp = (Utc::now() + Duration::minutes(2000)).timestamp_millis() as usize;
         let user = User {
             id: user.id,
             email: user.email,
