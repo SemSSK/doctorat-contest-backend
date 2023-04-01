@@ -13,5 +13,10 @@ pub mod account;
 /// Security wrapping function
 pub mod authentication;
 
-/// this module contains apis that allow the ViceDoyen to manage the  virtual platform
+pub mod cfd;
+
+/// this module contains apis that allow the ViceDoyen to:
+/// Manage sessions
+/// Manage applicants
+/// Make announcements
 pub mod vice_doyen;
