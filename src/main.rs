@@ -90,6 +90,15 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::vice_doyen::delete_session),
             )
             .service(
+                web::scope("/cfd")
+                    .service(apis::cfd::get_affected_monitors)
+                    .service(apis::cfd::get_possible_monitors)
+                    .service(apis::cfd::add_monitor)
+                    .service(apis::cfd::delete_monitor)
+                    .service(apis::cfd::get_session)
+                    .service(apis::cfd::get_sessions),
+            )
+            .service(
                 web::scope("/account")
                     .service(apis::account::change_email)
                     .service(apis::account::change_password),

@@ -1,4 +1,5 @@
 pub mod module;
+pub mod result;
 pub mod session;
 /// contains user data related stuff
 pub mod user;
