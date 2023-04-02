@@ -96,7 +96,12 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::cfd::add_monitor)
                     .service(apis::cfd::delete_monitor)
                     .service(apis::cfd::get_session)
-                    .service(apis::cfd::get_sessions),
+                    .service(apis::cfd::get_sessions)
+                    .service(apis::cfd::get_possible_correctors)
+                    .service(apis::cfd::get_modules)
+                    .service(apis::cfd::get_applicants)
+                    .service(apis::cfd::get_results)
+                    .service(apis::cfd::create_result),
             )
             .service(
                 web::scope("/account")

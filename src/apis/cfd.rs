@@ -1,7 +1,7 @@
-use actix_web::{delete, get, post, web, Either, HttpRequest, HttpResponse, Responder};
+use actix_web::{delete, get, post, put, web, Either, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
-use crate::{ServerState, model::user, apis::authentication::secure_function};
+use crate::{ServerState, model::{user, result}, apis::authentication::secure_function};
 
 const API_RULES: [user::Role;1] = [user::Role::CFD];
 
@@ -11,6 +11,8 @@ pub struct MonitorAffectation {
     session_id: i32,
     professor_id: i32,
 }
+
+
 
 mod db {
     use crate::model::{session, user};
@@ -140,7 +142,7 @@ mod db {
             ma: MonitorAffectation,
             pool: &sqlx::MySqlPool,
         ) -> sqlx::Result<()> {
-            sqlx::query!(
+            if sqlx::query!(
               r#"
               insert into Edl.monitor_affectation
               select distinct
@@ -158,7 +160,10 @@ mod db {
               cfd.id,
               cfd.specialty
             ).execute(pool)
-            .await?;
+            .await?
+            .rows_affected() != 1 {
+              return Err(sqlx::Error::RowNotFound);
+            };
           Ok(())
         }
 
@@ -205,7 +210,190 @@ mod db {
         }
     }
 
-    pub mod result {}
+    pub mod result {
+        use crate::model::{user, module, result};
+
+      pub async fn get_possible_correctors(
+        cfd: user::User,
+        _session_id: i32,
+        pool: &sqlx::MySqlPool,
+      ) -> sqlx::Result<Vec<user::User>> {
+        sqlx::query_as!(
+          user::User,
+          r#"
+          select
+            u.id as 'id?', 
+            u.email,
+            "" as 'password?', 
+            u.role as 'role?: user::Role',
+            u.domaine as 'domaine?',
+            u.specialty as 'specialty?'
+          from
+            Edl.User u
+          where
+            u.role = "Professor" and
+            u.specialty = ? 
+          "#,
+          cfd.specialty
+        ).fetch_all(pool)
+        .await
+      }
+
+      pub async fn get_modules(
+        cfd: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<Vec<module::Module>> {
+        sqlx::query_as!(
+          module::Module,
+          r#"
+          select
+            m.code,
+            m.session_id as 'session_id?'
+          from
+            Edl.Module m, Edl.Session s
+          where
+            s.id = ? and
+            m.session_id  = s.id and
+            s.cfd_id = ?
+          "#,
+          session_id,
+          cfd.id
+        ).fetch_all(pool)
+        .await
+      }
+
+      pub async fn get_applicants(
+        cfd: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<Vec<user::User>> {
+        sqlx::query_as!(
+          user::User,
+          r#"
+          select
+            u.id as 'id?', 
+            u.email,
+            "" as 'password?', 
+            u.role as 'role?: user::Role',
+            u.domaine as 'domaine?',
+            u.specialty as 'specialty?'
+          from
+            Edl.User u, Edl.Session s, Edl.applicant_affectation af
+          where
+            u.id = af.applicant_id and
+            s.id = ? and
+            s.cfd_id = ?
+          "#,
+          session_id,
+          cfd.id
+        ).fetch_all(pool)
+        .await
+      }
+
+      pub async fn create_result(
+        cfd: user::User,
+        res: result::Result,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<()> {
+        if sqlx::query!(
+          r#"
+          insert into Edl.Result
+            (
+              applicant_id,
+              module_id,
+              session_id,
+              corrector_1_id,
+              corrector_2_id,
+              corrector_3_id
+            )
+          select distinct
+            af.applicant_id,
+            m.code,
+            s.id,
+            c1.id,
+            c2.id,
+            c3.id
+          from
+            Edl.User c1,
+            Edl.User c2,
+            Edl.User c3,
+            Edl.applicant_affectation af, 
+            Edl.Module m, 
+            Edl.Session s
+          where
+            af.session_id = s.id and
+            m.session_id = s.id and
+            af.applicant_id = ? and
+            m.code = ? and
+            s.cfd_id = ? and
+            s.id = ? and
+            c1.id = ? and
+            c2.id = ? and
+            c3.id = ? and
+            c1.id not in (c2.id, c3.id) and
+            c2.id != c3.id and
+            c1.role = "Professor" and
+            c2.role = "Professor" and
+            c3.role = "Professor"
+          "#,
+          res.applicant_id,
+          res.module_id,
+          cfd.id,
+          res.session_id,
+          res.corrector_1_id,
+          res.corrector_2_id,
+          res.corrector_3_id,
+        ).execute(pool)
+        .await?
+        .rows_affected() != 1 {
+          return Err(sqlx::Error::RowNotFound);
+        }
+        Ok(())
+      }
+
+      pub async fn get_results(
+        cfd: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<Vec<result::Result>> {
+        sqlx::query_as!(
+          result::Result,
+          r#"
+          select 
+            r.applicant_id,
+            r.module_id,
+            r.session_id,
+            r.corrector_1_id as 'corrector_1_id!',
+            r.corrector_2_id as 'corrector_2_id!',
+            r.corrector_3_id as 'corrector_3_id!',
+            r.note_1 as 'note_1?',
+            r.note_2 as 'note_2?',
+            r.note_3 as 'note_3?',
+            r.display_to_applicant as 'display_to_applicant?: bool',
+            r.display_to_cfd as 'display_to_cfd?: bool'
+          from
+            Edl.Result r, Edl.Session s
+          where
+            s.id = ? and
+            s.cfd_id = ? and
+            r.session_id = s.id
+          "#,
+          session_id,
+          cfd.id
+        ).fetch_all(pool)
+        .await
+      }
+
+      pub async fn end_session(
+        cfd: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<()> {
+        todo!()
+      }
+      
+    }
 }
 
 
@@ -350,3 +538,137 @@ pub async fn delete_monitor(
 }
 
 
+#[get("/result/correctors/session={id}")]
+pub async fn get_possible_correctors(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::get_possible_correctors(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  let Ok(cs) = f.await else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  Either::Right(web::Json(cs))
+}
+
+
+
+#[get("/result/module/session={id}")]
+pub async fn get_modules(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::get_modules(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  let Ok(cs) = f.await else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  Either::Right(web::Json(cs))
+}
+
+#[get("/result/applicants/session={id}")]
+pub async fn get_applicants(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::get_applicants(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  let Ok(us) = f.await else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  Either::Right(web::Json(us))
+}
+
+
+#[get("/result/session={id}")]
+pub async fn get_results(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::get_results(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  let Ok(rs) = f.await else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  Either::Right(web::Json(rs))
+}
+
+#[post("/result")]
+pub async fn create_result(
+  res: web::Json<result::Result>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> HttpResponse {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::create_result(u, res.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return HttpResponse::Forbidden().finish();
+  };
+
+  let Ok(rs) = f.await else {
+    return HttpResponse::NotFound().finish();
+  };
+
+  HttpResponse::Ok().finish()
+}
+
+#[put("/result/session={id}")]
+pub async fn end_session(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> HttpResponse {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::end_session(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return HttpResponse::Forbidden().finish();
+  };
+
+  let Ok(rs) = f.await else {
+    return HttpResponse::Forbidden().finish();
+  };
+
+  HttpResponse::Ok().finish()
+}
