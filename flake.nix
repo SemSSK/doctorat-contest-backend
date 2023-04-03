@@ -1,9 +1,9 @@
 {
   description = "A Rust development environment";
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos";
-  };
+  #inputs = {
+  #  nixpkgs.url = "github:nixos/nixpkgs/nixos";
+  #};
 
   outputs = { self, nixpkgs }: {
     packages.x86_64-linux = with nixpkgs; {
