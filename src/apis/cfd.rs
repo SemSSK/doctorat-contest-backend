@@ -390,7 +390,28 @@ mod db {
         session_id: i32,
         pool: &sqlx::MySqlPool
       ) -> sqlx::Result<()> {
-        todo!()
+        if sqlx::query!(
+          r#"
+          update Edl.Result
+          set display_to_applicant = TRUE 
+          where 
+            display_to_cfd = TRUE and
+            session_id = ? and
+            session_id in 
+              (
+                select id
+                from Edl.Session
+                where cfd_id = ?
+              )
+          "#,
+          session_id,
+          cfd.id
+        ).execute(pool)
+        .await?
+        .rows_affected() != 1 {
+          return Err(sqlx::Error::RowNotFound);
+        }
+        Ok(())
       }
       
     }
@@ -644,7 +665,7 @@ pub async fn create_result(
     return HttpResponse::Forbidden().finish();
   };
 
-  let Ok(rs) = f.await else {
+  let Ok(_) = f.await else {
     return HttpResponse::NotFound().finish();
   };
 
@@ -666,7 +687,7 @@ pub async fn end_session(
     return HttpResponse::Forbidden().finish();
   };
 
-  let Ok(rs) = f.await else {
+  let Ok(_) = f.await else {
     return HttpResponse::Forbidden().finish();
   };
 
