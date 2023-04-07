@@ -11,50 +11,226 @@ mod db {
     use super::AddMarkInput;
 
     pub async fn get_session(
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<Vec<session::Session>> {
-        todo!()
+        sqlx::query_as!(
+            session::Session,
+            r#"
+            select
+                s.id as 'id?',
+                s.virtual_platform_id,
+                s.cfd_id,
+                s.starting_time,
+                s.ending_time,
+                s.room_number
+            from
+                Edl.Session s, Edl.monitor_affectation ma, Edl.User p
+            where
+                ma.session_id = s.id    and
+                ma.professor_id = p.id  and
+                p.id = ?
+            "#,
+            professor.id
+        ).fetch_all(pool)
+        .await
     }
 
     pub async fn get_corrections(
         session_id: i32,
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
-    ) -> sqlx::Result<Vec<result::Result>> {
-        todo!()
+    ) -> sqlx::Result<Vec<(result::Result,String)>> {
+        sqlx::query!(
+            r#"
+            select
+                r.applicant_id,
+                r.module_id,
+                r.session_id,
+                r.corrector_1_id,
+                r.corrector_2_id,
+                r.corrector_3_id,
+                r.note_1,
+                r.note_2,
+                r.note_3,
+                aa.encoding
+            from
+                Edl.Session s, Edl.Result r, Edl.applicant_affectation aa
+            where
+                (
+                    r.corrector_1_id = ?    or
+                    r.corrector_2_id = ?    or
+                    (
+                        r.corrector_3_id = ? and
+                        abs(r.note_1 - r.note_2) > 3
+                    )
+                ) and
+                s.id = ?                and
+                r.session_id = s.id     and
+                aa.session_id = s.id    and
+                aa.applicant_id = r.applicant_id
+            "#,
+            professor.id,
+            professor.id,
+            professor.id,
+            session_id
+        ).fetch_all(pool)
+        .await
+        .map(|vr| vr.into_iter().map(|r| {
+            let mut note_1 = None;
+            let mut note_2 = None;
+            let mut note_3 = None;
+            if r.corrector_1_id.unwrap() == professor.id.unwrap() {
+                note_1 = r.note_1;
+            }
+            else if r.corrector_2_id.unwrap() == professor.id.unwrap() {
+                note_2 = r.note_2;
+            }
+            else if r.corrector_3_id.unwrap() == professor.id.unwrap() {
+                note_3 = r.note_3;
+            }
+
+            (result::Result {
+                applicant_id: r.applicant_id,
+                module_id: r.module_id,
+                session_id: r.session_id,
+                corrector_1_id: r.corrector_1_id.unwrap(),
+                corrector_2_id: r.corrector_2_id.unwrap(),
+                corrector_3_id: r.corrector_3_id.unwrap(),
+                note_1,
+                note_2,
+                note_3,
+                display_to_applicant: None,
+                display_to_cfd: None
+            },
+            r.encoding)
+        }).collect()) 
     }
 
     pub async fn add_mark(
         note: AddMarkInput,
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<()> {
-        todo!()
+        if sqlx::query!(
+            r#"
+            update Edl.Result
+            set 
+                note_1 = case
+            when 
+                corrector_1_id = ? then ?
+                else note_1
+            end,
+                note_2 = case
+            when
+                corrector_2_id = ? then ?
+                else note_2
+            end,
+                note_3 = case
+            when
+                corrector_3_id = ? then ?
+                else note_3
+            end
+            where
+                applicant_id = ? and
+                module_id = ? and
+                session_id = ? 
+            "#,
+            professor.id,note.note,
+            professor.id,note.note,
+            professor.id,note.note,
+            note.applicant_id,
+            note.module_id,
+            note.session_id
+        ).execute(pool)
+        .await?
+        .rows_affected() != 1 {
+            return Err(sqlx::Error::RowNotFound)
+        }
+        Ok(())
     } 
 
     pub async fn get_themes(
         session_id: i32,
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<Vec<theme::Theme>> {
-        todo!()
+        sqlx::query_as!(
+            theme::Theme,
+            r#"
+            select
+                session_id,
+                professor_id,
+                title,
+                content
+            from
+                Edl.Theme
+            where
+                session_id = ? and
+                professor_id = ?
+            "#,
+            session_id,
+            professor.id
+        ).fetch_all(pool)
+        .await
     }
 
     pub async fn add_theme(
         t: theme::Theme,
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<()> {
-        todo!()
+        if sqlx::query!(
+            r#"
+            insert into Edl.Theme
+                (session_id,professor_id,title,content)
+            select 
+                s.id, ?, ?, ?
+            from
+                Edl.Session s, Edl.User u
+            where
+                s.cfd_id = u.id and
+                u.specialty = ? 
+            "#,
+            professor.id,
+            t.title,
+            t.content,
+            professor.specialty
+        ).execute(pool)
+        .await?
+        .rows_affected() != 1 {
+            return Err(sqlx::Error::RowNotFound);
+        }
+        Ok(())
     }
 
     pub async fn check_accepted_applicants(
         session_id: i32,
-        cfd: user::User, 
+        professor: user::User, 
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<Vec<user::User>> {
-        todo!()
+        sqlx::query_as!(
+            user::User,
+            r#"
+            select
+                u.id as 'id?', 
+                u.email,
+                "" as 'password?', 
+                u.role as 'role?: user::Role',
+                u.domaine as 'domaine?',
+                u.specialty as 'specialty?'
+            from
+                Edl.Choice c, Edl.User u
+            where
+                c.result = true and
+                c.professor_id = ? and
+                c.applicant_id = u.id and
+                c.session_id = ?
+            "#,
+            professor.id,
+            session_id
+        ).fetch_all(pool)
+        .await
     } 
 
 }
@@ -108,7 +284,7 @@ pub async fn get_corrections(
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AddMarkInput {
     pub applicant_id: i32,
-    pub module_id: i32,
+    pub module_id: String,
     pub session_id: i32,
     pub note: i32
 }
