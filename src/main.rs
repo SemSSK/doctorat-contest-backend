@@ -104,6 +104,15 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::cfd::create_result),
             )
             .service(
+                web::scope("/professor")
+                    .service(apis::professor::get_sessions)
+                    .service(apis::professor::get_corrections)
+                    .service(apis::professor::add_mark)
+                    .service(apis::professor::get_themes)
+                    .service(apis::professor::add_theme)
+                    .service(apis::professor::check_accepted_applicants)
+            )
+            .service(
                 web::scope("/account")
                     .service(apis::account::change_email)
                     .service(apis::account::change_password),

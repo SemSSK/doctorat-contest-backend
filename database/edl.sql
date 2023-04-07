@@ -1,8 +1,8 @@
--- MariaDB dump 10.19  Distrib 10.6.12-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.6.11-MariaDB, for Linux (x86_64)
 --
 -- Host: localhost    Database: Edl
 -- ------------------------------------------------------
--- Server version	10.6.12-MariaDB-0ubuntu0.22.04.1
+-- Server version	10.6.11-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -136,14 +136,17 @@ DROP TABLE IF EXISTS `Result`;
 CREATE TABLE `Result` (
   `applicant_id` int(11) NOT NULL,
   `module_id` varchar(256) NOT NULL,
+  `session_id` int(11) NOT NULL,
   `corrector_1_id` int(11) DEFAULT NULL,
   `corrector_2_id` int(11) DEFAULT NULL,
   `corrector_3_id` int(11) DEFAULT NULL,
   `note_1` int(11) DEFAULT NULL,
   `note_2` int(11) DEFAULT NULL,
   `note_3` int(11) DEFAULT NULL,
-  `session_id` int(11) NOT NULL,
-  `display` tinyint(1) NOT NULL DEFAULT 0,
+  `note_final` int(11) DEFAULT NULL,
+  `display_to_3rd_corrector` tinyint(1) NOT NULL DEFAULT 0,
+  `display_to_applicant` tinyint(1) NOT NULL DEFAULT 0,
+  `display_to_cfd` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`applicant_id`,`module_id`,`session_id`),
   KEY `Result_FK` (`module_id`,`session_id`),
   KEY `Result_FK_2` (`corrector_1_id`),
@@ -164,6 +167,7 @@ CREATE TABLE `Result` (
 
 LOCK TABLES `Result` WRITE;
 /*!40000 ALTER TABLE `Result` DISABLE KEYS */;
+INSERT INTO `Result` VALUES (25,'Algo',5,23,24,30,NULL,NULL,NULL,NULL,0,0,0);
 /*!40000 ALTER TABLE `Result` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -243,7 +247,7 @@ CREATE TABLE `User` (
   `specialty` varchar(256) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `User_UN` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -252,7 +256,7 @@ CREATE TABLE `User` (
 
 LOCK TABLES `User` WRITE;
 /*!40000 ALTER TABLE `User` DISABLE KEYS */;
-INSERT INTO `User` VALUES (1,'admin@email.com','1234','Admin',NULL,NULL),(21,'A','hKurzxO','ViceDoyen','Informatique',NULL),(22,'B','IFde6el','CFD','Informatique','GL'),(23,'C','U8exkQE','Professor','Informatique','GL'),(24,'D','XCHp8Gz','Professor','Informatique','GL'),(25,'E','nkzboMJ','Applicant','Informatique','GL'),(26,'F','gIPZzI0','Applicant','Informatique','GL'),(27,'G','39Qf8YB','Applicant','Informatique','GL'),(28,'H','oYjlr74','Applicant','Informatique','GL'),(29,'I','mB3sCb1','Applicant','Informatique','GL');
+INSERT INTO `User` VALUES (1,'admin@email.com','1234','Admin',NULL,NULL),(21,'A','hKurzxO','ViceDoyen','Informatique',NULL),(22,'B','IFde6el','CFD','Informatique','GL'),(23,'C','U8exkQE','Professor','Informatique','GL'),(24,'D','XCHp8Gz','Professor','Informatique','GL'),(25,'E','nkzboMJ','Applicant','Informatique','GL'),(26,'F','gIPZzI0','Applicant','Informatique','GL'),(27,'G','39Qf8YB','Applicant','Informatique','GL'),(28,'H','oYjlr74','Applicant','Informatique','GL'),(29,'I','mB3sCb1','Applicant','Informatique','GL'),(30,'J','1234','Professor','Informatique','GL');
 /*!40000 ALTER TABLE `User` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -333,6 +337,7 @@ CREATE TABLE `monitor_affectation` (
 
 LOCK TABLES `monitor_affectation` WRITE;
 /*!40000 ALTER TABLE `monitor_affectation` DISABLE KEYS */;
+INSERT INTO `monitor_affectation` VALUES (5,23);
 /*!40000 ALTER TABLE `monitor_affectation` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -345,4 +350,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-04-01 23:05:37
+-- Dump completed on 2023-04-07  1:37:27

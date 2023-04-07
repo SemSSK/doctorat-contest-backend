@@ -20,3 +20,5 @@ pub mod cfd;
 /// Manage applicants
 /// Make announcements
 pub mod vice_doyen;
+pub mod professor;
+

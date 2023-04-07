@@ -19,10 +19,12 @@ pub struct Result {
 }
 
 impl Result {
+
     pub fn calc_note_final(&self) -> Option<i32> {
         let (Some(n1),Some(n2)) = (self.note_1,self.note_2) else {
-        return None;
-      };
+            return None;
+        };
+
         match self.note_3 {
             None => Some((n1 + n2) / 2),
             Some(n) => {
@@ -43,4 +45,6 @@ impl Result {
       };
         (n1 - n2) > 2
     }
+
+    
 }

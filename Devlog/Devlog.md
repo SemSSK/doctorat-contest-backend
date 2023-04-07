@@ -150,3 +150,11 @@ the CFD roles boils down to:
 * affecting the correctors to the results of the students (basically creating a row in the Result table).
 * displaying the results once the Results are filled by the correctors
 
+# Entry 9 adding the professor's Apis
+
+the Professor role is basically:
+* checking session that he monitors or corrects in.
+* checking corrections list.
+* adding mark to applicants results.
+* creating a theme.
+* checking accepted applicant in a theme.
