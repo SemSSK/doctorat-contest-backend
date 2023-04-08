@@ -130,6 +130,13 @@ mod db {
             when
                 corrector_3_id = ? then ?
                 else note_3
+            end,
+                display_to_cfd = case
+            when
+                (note_1 - note_2) <= 3 or
+                note_3 != null
+                then true
+                else display_to_cfd
             end
             where
                 applicant_id = ? and

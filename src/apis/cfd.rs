@@ -393,7 +393,7 @@ mod db {
         if sqlx::query!(
           r#"
           update Edl.Result
-          set display_to_applicant = TRUE 
+          set display_to_applicant = true
           where 
             display_to_cfd = TRUE and
             session_id = ? and
