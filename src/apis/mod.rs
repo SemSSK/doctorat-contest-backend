@@ -21,4 +21,5 @@ pub mod cfd;
 /// Make announcements
 pub mod vice_doyen;
 pub mod professor;
+pub mod applicant;
 

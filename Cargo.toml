@@ -12,6 +12,7 @@ actix-web = "4.3"
 sqlx = { version = "0.6.2", features = [
   "runtime-async-std-native-tls",
   "mysql",
+  "bigdecimal"
 ] }
 dotenv = "0.15"
 chrono = "0.4.23"

@@ -5,3 +5,4 @@ pub mod session;
 pub mod user;
 pub mod virtual_platform;
 pub mod theme;
+pub mod reclamation;
