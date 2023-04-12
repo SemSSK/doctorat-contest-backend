@@ -282,6 +282,7 @@ mod db {
             Edl.User u, Edl.Session s, Edl.applicant_affectation af
           where
             u.id = af.applicant_id and
+            af.presence = true and
             s.id = ? and
             s.cfd_id = ?
           "#,
@@ -325,6 +326,7 @@ mod db {
             af.session_id = s.id and
             m.session_id = s.id and
             af.applicant_id = ? and
+            af.presence = true and
             m.code = ? and
             s.cfd_id = ? and
             s.id = ? and

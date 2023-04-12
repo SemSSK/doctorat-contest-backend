@@ -360,9 +360,9 @@ mod db {
             if sqlx::query!(
                 r#"
                 insert into applicant_affectation
-                    (applicant_id,session_id,encoding)
+                    (applicant_id,session_id,presence)
                 select distinct
-                    u.id,s.id,?
+                    u.id,s.id,false
                 from Edl.User u, Edl.Session s, Edl.User cfd
                 where
                     u.id = ? and
@@ -372,7 +372,6 @@ mod db {
                     s.id = ? and
                     s.virtual_platform_id = ?
                 "#,
-                af.encoding,
                 af.applicant_id,
                 af.session_id,
                 vd.id
@@ -383,6 +382,37 @@ mod db {
                 != 1
             {
                 return Err(sqlx::Error::RowNotFound);
+            }
+            Ok(())
+        }
+
+        pub async fn encode_applicant(
+            vd: user::User,
+            applicant_affectation: ApplicantAffectation,
+            pool: &MySqlPool
+        ) -> sqlx::Result<()> {
+            if sqlx::query!(
+                r#"
+                update Edl.applicant_affectation
+                set
+                    encoding = ?,
+                    presence = true
+                where
+                    applicant_id = ? and
+                    session_id in (
+                        select
+                            id
+                        from Edl.Session
+                        where virtual_platform_id = ?
+                    );
+                "#,
+                applicant_affectation.encoding,
+                applicant_affectation.applicant_id,
+                vd.id
+            ).execute(pool)
+            .await?
+            .rows_affected() != 1 {
+                return Err(sqlx::Error::RowNotFound)
             }
             Ok(())
         }
@@ -663,7 +693,7 @@ pub async fn delete_module(
 pub struct ApplicantAffectation {
     pub session_id: i32,
     pub applicant_id: i32,
-    pub encoding: String,
+    pub encoding: String
 }
 
 #[get("/applicant")]
@@ -746,6 +776,27 @@ pub async fn affect_applicant(
     };
     HttpResponse::Ok().finish()
 }
+
+#[put("/applicant/encode")]
+pub async fn encode_applicant(
+    af: web::Json<ApplicantAffectation>,
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> HttpResponse {
+    let Some(f) = secure_function(
+        |_| true,
+        |u| db::applicant::encode_applicant(u, af.0, &data.pool),
+        &[user::Role::ViceDoyen],
+        request,
+    ) else {
+        return HttpResponse::Forbidden().finish();
+    };
+    let Ok(_) = f.await else {
+        return HttpResponse::Forbidden().finish();
+    };
+    HttpResponse::Ok().finish()
+}
+
 
 #[delete("/applicant")]
 pub async fn delete_applicant(

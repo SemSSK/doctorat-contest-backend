@@ -40,7 +40,7 @@ mod db {
         session_id: i32,
         professor: user::User, 
         pool: &sqlx::MySqlPool
-    ) -> sqlx::Result<Vec<(result::Result,String)>> {
+    ) -> sqlx::Result<Vec<(result::Result,Option<String>)>> {
         sqlx::query!(
             r#"
             select
