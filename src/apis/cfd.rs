@@ -379,12 +379,45 @@ mod db {
           where
             s.id = ? and
             s.cfd_id = ? and
+            r.display_to_cfd = true and
             r.session_id = s.id
           "#,
           session_id,
           cfd.id
         ).fetch_all(pool)
         .await
+      }
+
+      pub async fn check_if_correction_ended(
+        cfd: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+      ) -> sqlx::Result<bool> {
+        Ok(sqlx::query!(
+                  r#"
+                  select 
+                    (case
+                      when abs(r.note_1 - r.note_2) <= 3 or
+                      r.note_3 != null then
+                      true
+                    else
+                      false
+                    end) as 'corrected!: bool'
+                  from
+                    Edl.Result r, Edl.Session s
+                  where
+                    s.id = ? and
+                    s.cfd_id = ? and
+                    r.session_id = s.id
+                  "#,
+                  session_id,
+                  cfd.id
+                ).fetch_all(pool)
+                .await?
+                .iter()
+                .all(|r| {
+                  r.corrected
+                }))
       }
 
       pub async fn end_session(
@@ -673,6 +706,29 @@ pub async fn create_result(
 
   HttpResponse::Ok().finish()
 }
+
+#[get("/result/ended_session={id}")]
+pub async fn check_if_correction_ended( 
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> HttpResponse {
+    let Some(f) = secure_function(
+      |_| true, 
+      |u| db::result::check_if_correction_ended(u, session_id.0, &data.pool), 
+      &API_RULES, 
+      request
+    ) else {
+      return HttpResponse::Forbidden().finish();
+    };
+
+    let Ok(_) = f.await else {
+      return HttpResponse::Forbidden().finish();
+    };
+
+  HttpResponse::Ok().finish()
+}
+
 
 #[put("/result/session={id}")]
 pub async fn end_session(
