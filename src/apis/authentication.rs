@@ -81,7 +81,7 @@ where
 {
     get_claim_from_header(request)
         .filter(|u| match &u.role {
-            Some(r) => roles.contains(r) && checks(&u),
+            Some(r) => roles.contains(r) && checks(u),
             None => false,
         })
         .map(logic)
