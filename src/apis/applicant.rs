@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use actix_web::{get,post, web, HttpRequest, Either, HttpResponse, Responder};
+use sqlx::types::BigDecimal;
 use crate::{model::{theme, user, reclamation}, ServerState, apis::authentication::secure_function};
 
 const API_ROLES : [user::Role;1] = [user::Role::Applicant];
@@ -8,7 +9,7 @@ const API_ROLES : [user::Role;1] = [user::Role::Applicant];
 pub struct ClassmentEntry {
     pub email: String,
     pub classment: usize,
-    pub avg: f64
+    pub avg: Option<f64>
 }
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -26,11 +27,13 @@ pub struct ThemeId {
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct ResultDisplay{
-    pub note: f64,
+    pub note: Option<f64>,
     pub module : String
 }
 
 mod db {
+    use bigdecimal::*;
+
     use crate::model::{session, user, reclamation, theme};
 
     use super::{ClassmentEntry, ThemeDisplay, ThemeId, ResultDisplay};
@@ -98,11 +101,11 @@ mod db {
                     select
                         u.email,
                         avg(case
-                                when r.note_3 = null then ((r.note_1 + r.note_2)/2)
+                                when r.note_3 is null then ((r.note_1 + r.note_2)/2)
                                 when abs(r.note_3 - r.note_2) >= abs(r.note_3 - r.note_1) 
                                     then ((r.note_3 + r.note_1)/2) 
                                 else ((r.note_3 + r.note_2)/2) 
-                            end) as 'avg!:f64'
+                            end) as 'avg!:BigDecimal'
                     from
                         Edl.Result r, 
                         Edl.applicant_affectation aa, 
@@ -110,6 +113,7 @@ mod db {
                         Edl.User u
                     where
                         r.session_id = s.id and
+                        r.applicant_id = aa.applicant_id and
                         s.id = aa.session_id and
                         u.id = aa.applicant_id and
                         s.id = ?
@@ -119,10 +123,10 @@ mod db {
                     session_id
                 ).fetch_all(pool)
                 .await?
-                .iter()
+                .into_iter()
                 .enumerate()
                 .map(|(i,r)| ClassmentEntry {
-                    avg:r.avg,
+                    avg: r.avg.to_f64(),
                     classment:i+1,
                     email:r.email.to_owned()
                 })
@@ -134,30 +138,36 @@ mod db {
         session_id: i32,
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<Vec<ResultDisplay>> {
-        sqlx::query_as!(
-            ResultDisplay,
-            r#"
-                select
-                    r.module_id as 'module',
-                    case
-                        when r.note_3 = null then ((r.note_1 + r.note_2)/2)
-                        when abs(r.note_3 - r.note_2) >= abs(r.note_3 - r.note_1) 
-                            then ((r.note_3 + r.note_1)/2) 
-                        else ((r.note_3 + r.note_2)/2) 
-                    end as 'note! : f64'
-                from
-                    Edl.Result r, Edl.User u, Edl.Session s
-                where
-                    s.id = r.session_id and
-                    r.applicant_id = u.id and
-                    s.id = ? and
-                    u.id = ?
-                group by r.module_id
-            "#,
-            session_id,
-            applicant.id
-        ).fetch_all(pool)
-        .await
+        Ok(sqlx::query!(
+                    r#"
+                        select
+                            r.module_id as 'module',
+                            case
+                                when r.note_3 is null then ((r.note_1 + r.note_2)/2)
+                                when abs(r.note_3 - r.note_2) >= abs(r.note_3 - r.note_1) 
+                                    then ((r.note_3 + r.note_1)/2) 
+                                else ((r.note_3 + r.note_2)/2) 
+                            end as 'note! : BigDecimal'
+                        from
+                            Edl.Result r, Edl.User u, Edl.Session s
+                        where
+                            s.id = r.session_id and
+                            r.applicant_id = u.id and
+                            r.display_to_applicant = true and
+                            s.id = ? and
+                            u.id = ?
+                        group by r.module_id
+                    "#,
+                    session_id,
+                    applicant.id
+                ).fetch_all(pool)
+                .await?
+                .into_iter()
+                .map(|r| ResultDisplay {
+                    module: r.module,
+                    note: r.note.to_f64()
+                })
+                .collect())
     }
 
     pub async fn get_reclamations(
@@ -401,7 +411,7 @@ pub async fn get_personal_results(
     };
 
     let Ok(s) = f.await else {
-        return Either::Left(HttpResponse::Forbidden().finish());
+        return Either::Left(HttpResponse::NotFound().finish());
     };
 
     Either::Right(web::Json(s))

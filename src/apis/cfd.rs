@@ -398,7 +398,7 @@ mod db {
                   select 
                     (case
                       when abs(r.note_1 - r.note_2) <= 3 or
-                      r.note_3 != null then
+                      r.note_3 is not null then
                       true
                     else
                       false
@@ -712,21 +712,21 @@ pub async fn check_if_correction_ended(
   session_id: web::Path<(i32,)>,
   data: web::Data<ServerState>,
   request: HttpRequest
-) -> HttpResponse {
+) -> Either<HttpResponse,impl Responder> {
     let Some(f) = secure_function(
       |_| true, 
       |u| db::result::check_if_correction_ended(u, session_id.0, &data.pool), 
       &API_RULES, 
       request
     ) else {
-      return HttpResponse::Forbidden().finish();
+      return Either::Left(HttpResponse::Forbidden().finish());
     };
 
-    let Ok(_) = f.await else {
-      return HttpResponse::Forbidden().finish();
+    let Ok(b) = f.await else {
+      return Either::Left(HttpResponse::Forbidden().finish());
     };
 
-  HttpResponse::Ok().finish()
+  Either::Right(web::Json(b))
 }
 
 
@@ -746,7 +746,7 @@ pub async fn end_session(
   };
 
   let Ok(_) = f.await else {
-    return HttpResponse::Forbidden().finish();
+    return HttpResponse::NotFound().finish();
   };
 
   HttpResponse::Ok().finish()

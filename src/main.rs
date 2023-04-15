@@ -79,6 +79,7 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::vice_doyen::get_current_applicants)
                     .service(apis::vice_doyen::get_applicant)
                     .service(apis::vice_doyen::affect_applicant)
+                    .service(apis::vice_doyen::encode_applicant)
                     .service(apis::vice_doyen::delete_applicant)
                     .service(apis::vice_doyen::get_announcement)
                     .service(apis::vice_doyen::create_announcement)
@@ -101,6 +102,8 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::cfd::get_modules)
                     .service(apis::cfd::get_applicants)
                     .service(apis::cfd::get_results)
+                    .service(apis::cfd::check_if_correction_ended)
+                    .service(apis::cfd::end_session)
                     .service(apis::cfd::create_result),
             )
             .service(
@@ -111,6 +114,18 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::professor::get_themes)
                     .service(apis::professor::add_theme)
                     .service(apis::professor::check_accepted_applicants)
+            )
+            .service(
+                web::scope("/applicant")
+                    .service(apis::applicant::get_sessions)
+                    .service(apis::applicant::get_announcements)
+                    .service(apis::applicant::get_classment)
+                    .service(apis::applicant::get_personal_results)
+                    .service(apis::applicant::get_reclamations)
+                    .service(apis::applicant::add_reclamations)
+                    .service(apis::applicant::get_themes)
+                    .service(apis::applicant::choose_theme)
+                    .service(apis::applicant::check_theme_result)
             )
             .service(
                 web::scope("/account")
