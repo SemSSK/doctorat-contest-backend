@@ -96,7 +96,7 @@ CREATE TABLE `Module` (
 
 LOCK TABLES `Module` WRITE;
 /*!40000 ALTER TABLE `Module` DISABLE KEYS */;
-INSERT INTO `Module` VALUES ('Algo',5);
+INSERT INTO `Module` VALUES ('Algo',5),('CRI',5),('TQL',5);
 /*!40000 ALTER TABLE `Module` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -167,7 +167,7 @@ CREATE TABLE `Result` (
 
 LOCK TABLES `Result` WRITE;
 /*!40000 ALTER TABLE `Result` DISABLE KEYS */;
-INSERT INTO `Result` VALUES (25,'Algo',5,23,24,30,NULL,NULL,NULL,NULL,0,0,0);
+INSERT INTO `Result` VALUES (25,'Algo',5,23,24,30,12,13,NULL,NULL,0,1,1),(26,'Algo',5,23,24,30,12,11,NULL,NULL,0,1,1),(27,'Algo',5,23,24,30,12,16,15,NULL,0,1,1);
 /*!40000 ALTER TABLE `Result` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -295,7 +295,8 @@ DROP TABLE IF EXISTS `applicant_affectation`;
 CREATE TABLE `applicant_affectation` (
   `applicant_id` int(11) NOT NULL,
   `session_id` int(11) NOT NULL,
-  `encoding` varchar(256) NOT NULL,
+  `encoding` varchar(256) DEFAULT NULL,
+  `presence` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`applicant_id`,`session_id`),
   UNIQUE KEY `applicant_affectation_UN` (`encoding`),
   KEY `applicant_affectation_FK_1` (`session_id`),
@@ -310,7 +311,7 @@ CREATE TABLE `applicant_affectation` (
 
 LOCK TABLES `applicant_affectation` WRITE;
 /*!40000 ALTER TABLE `applicant_affectation` DISABLE KEYS */;
-INSERT INTO `applicant_affectation` VALUES (27,5,'01031'),(26,5,'01032'),(25,5,'01033');
+INSERT INTO `applicant_affectation` VALUES (25,5,'1',1),(26,5,'2',1),(27,5,'3',1),(28,5,NULL,0);
 /*!40000 ALTER TABLE `applicant_affectation` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -350,4 +351,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-04-07  1:37:27
+-- Dump completed on 2023-04-15 22:08:42
