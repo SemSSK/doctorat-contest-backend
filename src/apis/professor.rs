@@ -1,14 +1,20 @@
 use actix_web::{get,post,put,HttpRequest, web, Either, HttpResponse, Responder};
 use serde::{Serialize, Deserialize};
-use crate::{ServerState, model::{theme, user}, apis::authentication::secure_function};
+use crate::{ServerState, model::{theme, user, self}, apis::authentication::secure_function};
 
 
 const API_ROLES : [user::Role; 1] = [user::Role::Professor];
 
+#[derive(Debug,Serialize,Deserialize)]
+struct ResultDisplay {
+    result:model::result::Result,
+    encoding:Option<String>
+}
+
 mod db {
     use crate::model::{user, session, result, theme};
 
-    use super::AddMarkInput;
+    use super::{AddMarkInput, ResultDisplay};
 
     pub async fn get_session(
         professor: user::User, 
@@ -40,7 +46,7 @@ mod db {
         session_id: i32,
         professor: user::User, 
         pool: &sqlx::MySqlPool
-    ) -> sqlx::Result<Vec<(result::Result,Option<String>)>> {
+    ) -> sqlx::Result<Vec<ResultDisplay>> {
         sqlx::query!(
             r#"
             select
@@ -90,20 +96,22 @@ mod db {
                 note_3 = r.note_3;
             }
 
-            (result::Result {
-                applicant_id: r.applicant_id,
-                module_id: r.module_id,
-                session_id: r.session_id,
-                corrector_1_id: r.corrector_1_id.unwrap(),
-                corrector_2_id: r.corrector_2_id.unwrap(),
-                corrector_3_id: r.corrector_3_id.unwrap(),
-                note_1,
-                note_2,
-                note_3,
-                display_to_applicant: None,
-                display_to_cfd: None
-            },
-            r.encoding)
+            ResultDisplay {
+                result: result::Result {
+                        applicant_id: r.applicant_id,
+                        module_id: r.module_id,
+                        session_id: r.session_id,
+                        corrector_1_id: r.corrector_1_id.unwrap(),
+                        corrector_2_id: r.corrector_2_id.unwrap(),
+                        corrector_3_id: r.corrector_3_id.unwrap(),
+                        note_1,
+                        note_2,
+                        note_3,
+                        display_to_applicant: None,
+                        display_to_cfd: None
+                },
+                encoding: r.encoding
+            }
         }).collect()) 
     }
 
