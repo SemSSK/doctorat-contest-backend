@@ -34,7 +34,7 @@ pub struct ResultDisplay{
 mod db {
     use bigdecimal::*;
 
-    use crate::model::{session, user, reclamation, theme, module};
+    use crate::{model::{session, user, reclamation, theme, module}, email::send_email};
 
     use super::{ClassmentEntry, ThemeDisplay, ThemeId, ResultDisplay};
 
@@ -57,6 +57,7 @@ mod db {
             where
                 s.id = aa.session_id and
                 edu.id = aa.applicant_id and
+                aa.presence = true and
                 aa.applicant_id = ?
             "#,
             applicant.id
@@ -227,28 +228,29 @@ mod db {
         rec: reclamation::Reclamation,
         pool: &sqlx::MySqlPool
     ) -> sqlx::Result<()> {
-        if sqlx::query!(
-            r#"
-            insert into Edl.Reclamation
-                (applicant_id,module_id,session_id,content)
-            select
-                u.id,
-                r.module_id,
-                r.session_id,
-                ?
-            from
-                Edl.Result r, Edl.User u
-            where
-                r.applicant_id = u.id and
-                u.id = ?
-            "#,
-            rec.content,
-            applicant.id
-        ).execute(pool)
-        .await?
-        .rows_affected() != 1 {
-            return Err(sqlx::Error::RowNotFound); 
-        }
+        // if sqlx::query!(
+        //     r#"
+        //     insert into Edl.Reclamation
+        //         (applicant_id,module_id,session_id,content)
+        //     select
+        //         u.id,
+        //         r.module_id,
+        //         r.session_id,
+        //         ?
+        //     from
+        //         Edl.Result r, Edl.User u
+        //     where
+        //         r.applicant_id = u.id and
+        //         u.id = ?
+        //     "#,
+        //     rec.content,
+        //     applicant.id
+        // ).execute(pool)
+        // .await?
+        // .rows_affected() != 1 {
+        //     return Err(sqlx::Error::RowNotFound); 
+        // }
+        send_email(format!("Reclamation on grad from the applicant named {}",applicant.name),format!("{}",rec.content));
         Ok(())
     }
 

@@ -5,7 +5,7 @@ use actix_web::{delete, get, post, put, web, Either, HttpRequest, HttpResponse, 
 use serde::{Deserialize, Serialize};
 
 mod db {
-    use crate::model::{user, virtual_platform::VirtualPlatform};
+    use crate::{model::{user, virtual_platform::VirtualPlatform}, email::send_email};
     use rand::{distributions::Alphanumeric, Rng};
 
     /// Gets one user from database by id
@@ -109,6 +109,7 @@ mod db {
         )
         .execute(pool)
         .await?;
+        send_email("Account Created".to_string(), format!("An account has been created on this email with the following password : {}",password));
         Ok(())
     }
 

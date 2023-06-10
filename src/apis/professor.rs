@@ -12,7 +12,7 @@ struct ResultDisplay {
 }
 
 mod db {
-    use crate::model::{user, session, result, theme};
+    use crate::{model::{user, session, result, theme}, email::send_email};
 
     use super::{AddMarkInput, ResultDisplay};
 
@@ -144,6 +144,34 @@ mod db {
         }).collect()) 
     }
 
+    pub async fn check_if_another_correction_needed(
+        pool: &sqlx::MySqlPool,
+        note:AddMarkInput 
+    ) {
+        let Ok(r) = sqlx::query!(
+            r#"
+                select
+                    *
+                from
+                    Edl.Result r
+                where
+                    abs(r.note_1 - r.note_2) > 3 and
+                    r.applicant_id = ? and
+                    r.session_id = ? and
+                    r.module_id = ?
+            "#,
+            note.applicant_id,
+            note.session_id,
+            note.module_id
+        ).fetch_all(pool)
+        .await else {
+            return ()
+        };
+        if !r.is_empty(){
+            send_email("New Copy needs grading".to_string(), "A diffrence of more that 3 has been spoted on a student copy and you have been assigned to provide a third grading".to_string());
+        }
+    }
+
     pub async fn add_mark(
         note: AddMarkInput,
         professor: user::User, 
@@ -191,6 +219,7 @@ mod db {
         .rows_affected() != 1 {
             return Err(sqlx::Error::RowNotFound)
         }
+        check_if_another_correction_needed(pool, note).await;
         Ok(())
     } 
 

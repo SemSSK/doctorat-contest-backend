@@ -45,7 +45,6 @@ async fn main() -> std::io::Result<()> {
 
     // Creating global app state
     let server_state = ServerState { pool };
-
     // Starting the server
     HttpServer::new(move || {
         App::new()

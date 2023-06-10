@@ -445,13 +445,7 @@ mod db {
         let r = sqlx::query!(
           r#"
           select 
-            (case
-              when abs(r.note_1 - r.note_2) <= 3 or
-              r.note_3 is not null then
-              true
-            else
-              false
-            end) as 'corrected!: bool'
+            r.display_to_cfd as 'corrected!: bool'
           from
             Edl.Result r, Edl.Session s
           where
@@ -463,18 +457,18 @@ mod db {
           cfd.id
         ).fetch_all(pool)
         .await?;
-      dbg!(
         if r.is_empty() {
+          dbg!(
           Ok(false)
+          )
         }
         else{
           Ok(
               r.iter()
               .all(|r| {
-                r.corrected
+                dbg!(r.corrected)
               }))
         }
-      )
       }
 
       pub async fn end_session(
