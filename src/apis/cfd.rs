@@ -213,7 +213,7 @@ mod db {
     }
 
     pub mod result {
-        use crate::model::{user, module, result};
+        use crate::{model::{user, module, result}, apis::applicant::ClassmentEntry};
 
       pub async fn get_possible_correctors(
         cfd: user::User,
@@ -358,6 +358,50 @@ mod db {
         }
         Ok(())
       }
+      use bigdecimal::*;
+      pub async fn get_classment(
+        _applicant: user::User,
+        session_id: i32,
+        pool: &sqlx::MySqlPool
+    ) -> sqlx::Result<Vec<ClassmentEntry>> {
+        Ok(sqlx::query!(
+                    r#"
+                    select
+                        u.name,
+                        u.email,
+                        avg(case
+                                when r.note_3 is null then ((r.note_1 + r.note_2)/2)
+                                when abs(r.note_3 - r.note_2) >= abs(r.note_3 - r.note_1) 
+                                    then ((r.note_3 + r.note_1)/2) 
+                                else ((r.note_3 + r.note_2)/2) 
+                            end) as 'avg!:BigDecimal'
+                    from
+                        Edl.Result r, 
+                        Edl.applicant_affectation aa, 
+                        Edl.Session s, 
+                        Edl.User u
+                    where
+                        r.session_id = s.id and
+                        r.applicant_id = aa.applicant_id and
+                        s.id = aa.session_id and
+                        u.id = aa.applicant_id and
+                        s.id = ?
+                    group by u.id
+                    order by 3 desc
+                    "#,
+                    session_id
+                ).fetch_all(pool)
+                .await?
+                .into_iter()
+                .enumerate()
+                .map(|(i,r)| ClassmentEntry {
+                    avg: r.avg.to_f64(),
+                    classment:i+1,
+                    email:r.email.to_owned(),
+                    name: r.name.to_owned()
+                })
+                .collect())
+    }
 
       pub async fn get_results(
         cfd: user::User,
@@ -398,31 +442,39 @@ mod db {
         session_id: i32,
         pool: &sqlx::MySqlPool
       ) -> sqlx::Result<bool> {
-        Ok(sqlx::query!(
-                  r#"
-                  select 
-                    (case
-                      when abs(r.note_1 - r.note_2) <= 3 or
-                      r.note_3 is not null then
-                      true
-                    else
-                      false
-                    end) as 'corrected!: bool'
-                  from
-                    Edl.Result r, Edl.Session s
-                  where
-                    s.id = ? and
-                    s.cfd_id = ? and
-                    r.session_id = s.id
-                  "#,
-                  session_id,
-                  cfd.id
-                ).fetch_all(pool)
-                .await?
-                .iter()
-                .all(|r| {
-                  r.corrected
-                }))
+        let r = sqlx::query!(
+          r#"
+          select 
+            (case
+              when abs(r.note_1 - r.note_2) <= 3 or
+              r.note_3 is not null then
+              true
+            else
+              false
+            end) as 'corrected!: bool'
+          from
+            Edl.Result r, Edl.Session s
+          where
+            s.id = ? and
+            s.cfd_id = ? and
+            r.session_id = s.id
+          "#,
+          session_id,
+          cfd.id
+        ).fetch_all(pool)
+        .await?;
+      dbg!(
+        if r.is_empty() {
+          Ok(false)
+        }
+        else{
+          Ok(
+              r.iter()
+              .all(|r| {
+                r.corrected
+              }))
+        }
+      )
       }
 
       pub async fn end_session(
@@ -667,6 +719,27 @@ pub async fn get_applicants(
   Either::Right(web::Json(us))
 }
 
+#[get("/classment/session={id}")]
+pub async fn get_classment(
+  session_id: web::Path<(i32,)>,
+  data: web::Data<ServerState>,
+  request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+  let Some(f) = secure_function(
+    |_| true, 
+    |u| db::result::get_classment(u, session_id.0, &data.pool), 
+    &API_RULES, 
+    request
+  ) else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  let Ok(rs) = f.await else {
+    return Either::Left(HttpResponse::Forbidden().finish());
+  };
+
+  Either::Right(web::Json(rs))
+}
 
 #[get("/result/session={id}")]
 pub async fn get_results(

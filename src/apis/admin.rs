@@ -88,6 +88,7 @@ mod db {
     /// Returns error in case of duplicate.
     pub async fn insert_user(
         email: String,
+        name: String,
         role: user::Role,
         domaine: String,
         specialty: String,
@@ -96,10 +97,11 @@ mod db {
         let password = generate_password();
         sqlx::query!(
             r#"
-          insert into Edl.User (email,password,role,domaine,specialty) values
-          (?,?,?,?,?)
+          insert into Edl.User (email,name,password,role,domaine,specialty) values
+          (?,?,?,?,?,?)
         "#,
             email,
+            name,
             password,
             role,
             domaine,
@@ -115,10 +117,11 @@ mod db {
         sqlx::query!(
             r#"
     update Edl.User
-    set email = ?, role = ?, domaine = ?,specialty = ?
+    set email = ?,name= ?, role = ?, domaine = ?,specialty = ?
     where id = ?
   "#,
             u.email,
+            u.name,
             u.role,
             u.domaine,
             u.specialty,
@@ -265,6 +268,7 @@ async fn get_users(
 #[derive(Serialize, Deserialize)]
 struct CreateUserInput {
     email: String,
+    name:String,
     role: user::Role,
     domaine: String,
     specialty: String,
@@ -278,6 +282,7 @@ async fn create_user(
 ) -> Either<HttpResponse, impl Responder> {
     let CreateUserInput {
         email,
+        name,
         role,
         domaine,
         specialty,
@@ -285,7 +290,7 @@ async fn create_user(
 
     let Some(f) = secure_function(
         |_| true,
-        |_| db::insert_user(email, role, domaine, specialty, &data.pool),
+        |_| db::insert_user(email, name,role, domaine, specialty, &data.pool),
         &[user::Role::Admin],
         request,
     ) else {

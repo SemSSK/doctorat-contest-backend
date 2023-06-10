@@ -107,6 +107,7 @@ async fn main() -> std::io::Result<()> {
                     .service(apis::cfd::get_possible_correctors)
                     .service(apis::cfd::get_modules)
                     .service(apis::cfd::get_applicants)
+                    .service(apis::cfd::get_classment)
                     .service(apis::cfd::get_results)
                     .service(apis::cfd::check_if_correction_ended)
                     .service(apis::cfd::end_session)

@@ -62,7 +62,7 @@ mod db {
                 (
                     r.corrector_1_id = p.id  or
                     r.corrector_2_id = p.id  or
-                    r.corrector_2_id = p.id  
+                    r.corrector_3_id = p.id  
                 ) and
                 p.id = ?
             "#,

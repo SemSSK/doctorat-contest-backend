@@ -7,6 +7,7 @@ const API_ROLES : [user::Role;1] = [user::Role::Applicant];
 #[derive(Debug,Serialize,Deserialize)]
 pub struct ClassmentEntry {
     pub email: String,
+    pub name: String,
     pub classment: usize,
     pub avg: Option<f64>
 }
@@ -123,6 +124,7 @@ mod db {
         Ok(sqlx::query!(
                     r#"
                     select
+                        u.name,
                         u.email,
                         avg(case
                                 when r.note_3 is null then ((r.note_1 + r.note_2)/2)
@@ -142,7 +144,7 @@ mod db {
                         u.id = aa.applicant_id and
                         s.id = ?
                     group by u.id
-                    order by 2 desc
+                    order by 3 desc
                     "#,
                     session_id
                 ).fetch_all(pool)
@@ -152,7 +154,8 @@ mod db {
                 .map(|(i,r)| ClassmentEntry {
                     avg: r.avg.to_f64(),
                     classment:i+1,
-                    email:r.email.to_owned()
+                    email:r.email.to_owned(),
+                    name: r.name.to_owned()
                 })
                 .collect())
     }
