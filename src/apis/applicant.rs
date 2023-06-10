@@ -1,6 +1,5 @@
 use serde::{Serialize, Deserialize};
 use actix_web::{get,post, web, HttpRequest, Either, HttpResponse, Responder};
-use sqlx::types::BigDecimal;
 use crate::{model::{theme, user, reclamation}, ServerState, apis::authentication::secure_function};
 
 const API_ROLES : [user::Role;1] = [user::Role::Applicant];
@@ -34,7 +33,7 @@ pub struct ResultDisplay{
 mod db {
     use bigdecimal::*;
 
-    use crate::model::{session, user, reclamation, theme};
+    use crate::model::{session, user, reclamation, theme, module};
 
     use super::{ClassmentEntry, ThemeDisplay, ThemeId, ResultDisplay};
 
@@ -64,6 +63,31 @@ mod db {
         .await
     }
 
+    pub async fn get_modules(
+        applicant: user::User,
+        pool:&sqlx::MySqlPool,
+        session_id:i32
+    ) -> sqlx::Result<Vec<module::Module>> {
+        sqlx::query_as!(
+            module::Module,
+            r#"
+            select
+                m.session_id as 'session_id?',
+                code
+            from
+                Edl.Session s, Edl.User edu, Edl.applicant_affectation aa,Edl.Module m
+            where
+                m.session_id = s.id and
+                s.id = aa.session_id and
+                edu.id = aa.applicant_id and
+                aa.applicant_id = ? and
+                s.id = ?
+            "#,
+            applicant.id,
+            session_id
+        ).fetch_all(pool)
+        .await
+    }
     pub async fn get_announcements(
         applicant: user::User,
         session_id: i32,
@@ -351,6 +375,28 @@ pub async fn get_sessions(
     Either::Right(web::Json(s))
 }
 
+#[get("/module/session={id}")]
+pub async fn get_modules(
+    session_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder>  {
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::get_modules(u, &data.pool,session_id.0),
+        &API_ROLES, 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    let Ok(s) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    Either::Right(web::Json(s))
+}
+
 #[get("/announcement/session={id}")]
 pub async fn get_announcements(
     session_id: web::Path<(i32,)>,
@@ -373,7 +419,7 @@ pub async fn get_announcements(
     Either::Right(web::Json(s))
 }
 
-#[get("/classemet/session={id}")]
+#[get("/classement/session={id}")]
 pub async fn get_classment(
     session_id: web::Path<(i32,)>,
     data: web::Data<ServerState>,
@@ -461,7 +507,7 @@ pub async fn add_reclamations(
     Either::Right(HttpResponse::Ok().finish())
 }
 
-#[get("/theme")]
+#[get("/theme/session={id}")]
 pub async fn get_themes(
     session_id: web::Path<(i32,)>,
     data: web::Data<ServerState>,

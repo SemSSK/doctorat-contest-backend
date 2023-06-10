@@ -41,6 +41,35 @@ mod db {
         ).fetch_all(pool)
         .await
     }
+    pub async fn get_session_to_grad(
+        professor: user::User, 
+        pool: &sqlx::MySqlPool
+    ) -> sqlx::Result<Vec<session::Session>> {
+        sqlx::query_as!(
+            session::Session,
+            r#"
+            select distinct
+                s.id as 'id?',
+                s.virtual_platform_id,
+                s.cfd_id,
+                s.starting_time,
+                s.ending_time,
+                s.room_number
+            from
+                Edl.Session s, Edl.Result r, Edl.User p
+            where
+                r.session_id = s.id    and
+                (
+                    r.corrector_1_id = p.id  or
+                    r.corrector_2_id = p.id  or
+                    r.corrector_2_id = p.id  
+                ) and
+                p.id = ?
+            "#,
+            professor.id
+        ).fetch_all(pool)
+        .await
+    }
 
     pub async fn get_corrections(
         session_id: i32,
@@ -261,6 +290,27 @@ pub async fn get_sessions(
     let Some(f) = secure_function(
         |_| true, 
         |u| db::get_session(u, &data.pool),
+        &API_ROLES, 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    let Ok(s) = f.await else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    Either::Right(web::Json(s))
+}
+#[get("/gradsession")]
+pub async fn get_sessions_to_grad(
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse, impl Responder> {
+    
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::get_session_to_grad(u, &data.pool),
         &API_ROLES, 
         request
     ) else {

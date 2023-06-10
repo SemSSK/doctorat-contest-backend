@@ -13,6 +13,31 @@ mod db {
 
     use super::UpdateSessionInput;
 
+    pub async fn get_cfd(
+        vd: user::User,
+        pool: &MySqlPool,
+    ) -> sqlx::Result<user::User> {
+        sqlx::query_as!(
+            user::User,
+            r#"
+            select
+                id as 'id?', 
+                email,
+                "" as 'password?', 
+                role as 'role?: user::Role',
+                domaine as 'domaine?',
+                specialty as 'specialty?'
+            from
+                Edl.User
+            where
+                domaine = ? and
+                role = "CFD"
+            "#,
+            vd.domaine
+        ).fetch_one(pool)
+        .await
+    }
+
     pub async fn create_session(
         vd: user::User,
         s: session::Session,
@@ -296,6 +321,41 @@ mod db {
             ).fetch_all(pool)
             .await
         }
+
+        pub async fn get_applicant_affectation(
+            vd: user::User,
+            session_id: i32,
+            pool: &MySqlPool
+        ) -> sqlx::Result<Vec<ApplicantAffectation>> {
+            Ok(sqlx::query!(
+                            r#"
+                                select
+                                    session_id,
+                                    applicant_id,
+                                    encoding as 'encoding?'
+                                from
+                                    Edl.applicant_affectation
+                                where
+                                    session_id = ?
+                            "#,
+                            session_id
+                        ).fetch_all(pool)
+                        .await?
+                        .iter()
+                        .map(|r| {
+                            let encoding = match r.encoding.as_ref() {
+                                Some(e) => e.clone(),
+                                None => "".to_string(),
+                            };
+                            ApplicantAffectation {
+                                applicant_id: r.applicant_id,
+                                session_id: r.session_id,
+                                encoding
+                            }
+                        }).collect()
+                    )
+        }
+
         pub async fn get_current_applicants(
             vd: user::User,
             session_id: i32,
@@ -399,6 +459,7 @@ mod db {
                     presence = true
                 where
                     applicant_id = ? and
+                    session_id = ? and
                     session_id in (
                         select
                             id
@@ -408,6 +469,7 @@ mod db {
                 "#,
                 applicant_affectation.encoding,
                 applicant_affectation.applicant_id,
+                applicant_affectation.session_id,
                 vd.id
             ).execute(pool)
             .await?
@@ -547,6 +609,21 @@ mod db {
             Ok(())
         }
     }
+}
+
+// getting the cfd
+#[get("/getcfd")]
+pub async fn get_cfd(
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> Either<HttpResponse, impl Responder> {
+    let Some(f) = secure_function(|_| true, |u| db::get_cfd(u, &data.pool), &[user::Role::ViceDoyen], request) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(ss) = f.await else {
+        return Either::Left(HttpResponse::NotFound().finish());
+    };
+    Either::Right(web::Json(ss))
 }
 
 // Session management
@@ -714,6 +791,25 @@ pub async fn get_possible_applicants(
     };
     Either::Right(web::Json(apps))
 }
+#[get("/applicantaffected/{id}")]
+pub async fn get_applicant_affectation(
+    s_id: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest
+) -> Either<HttpResponse,impl Responder> {
+    let Some(f) = secure_function(
+        |_| true, 
+        |u| db::applicant::get_applicant_affectation(u, s_id.0,&data.pool), 
+        &[user::Role::ViceDoyen], 
+        request
+    ) else {
+        return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(apps) = f.await else {
+        return Either::Left(HttpResponse::NotFound().finish());
+    };
+    Either::Right(web::Json(apps))
+}
 
 #[get("/applicant/session={id}")]
 pub async fn get_current_applicants(
@@ -792,7 +888,7 @@ pub async fn encode_applicant(
         return HttpResponse::Forbidden().finish();
     };
     let Ok(_) = f.await else {
-        return HttpResponse::Forbidden().finish();
+        return HttpResponse::NotFound().finish();
     };
     HttpResponse::Ok().finish()
 }

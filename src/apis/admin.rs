@@ -191,6 +191,35 @@ mod db {
         }
         Ok(())
     }
+ 
+    pub async fn get_virtual_platforms(pool:&sqlx::MySqlPool) -> sqlx::Result<Vec<VirtualPlatform>> {
+      sqlx::query_as!(
+        VirtualPlatform,
+        r#"
+          select
+            vd_id,
+            name
+          from
+            Edl.VirtualPlatform
+        "#
+      ).fetch_all(pool)
+      .await
+    }
+
+    pub async fn delete_virtual_platform(pool:&sqlx::MySqlPool,id:i32) -> sqlx::Result<()> {
+      if sqlx::query!(
+        r#"
+          delete from Edl.VirtualPlatform
+          where vd_id = ?
+        "#,
+        id
+      ).execute(pool)
+      .await?
+      .rows_affected() == 1 {
+        return Err(sqlx::Error::RowNotFound);
+      }
+      Ok(())
+    }
 }
 
 #[get("/{id}")]
@@ -332,6 +361,22 @@ pub async fn delete_user(
     Either::Right(HttpResponse::Ok().finish())
 }
 
+#[get("/virtual-platform")]
+async fn get_virtual_platforms(
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> Either<HttpResponse, impl Responder> {
+    let Some(f) = secure_function(|_| true, |_| db::get_virtual_platforms(&data.pool),&[user::Role::Admin], request) else {
+      return Either::Left(HttpResponse::Forbidden().finish());
+    };
+
+    let Ok(users) = f.await else {
+      return Either::Left(HttpResponse::NotFound().finish());
+    };
+
+    Either::Right(web::Json(users))
+}
+
 #[post("/virtual-platform")]
 pub async fn create_virtual_platform(
     vp: web::Json<VirtualPlatform>,
@@ -354,3 +399,26 @@ pub async fn create_virtual_platform(
 
     HttpResponse::Ok().finish()
 }
+
+#[delete("/virtual-platform/{id}")]
+pub async fn delete_virtual_platform(
+    path: web::Path<(i32,)>,
+    data: web::Data<ServerState>,
+    request: HttpRequest,
+) -> Either<HttpResponse, impl Responder> {
+    let id = path.0;
+    let Some(f) = secure_function(
+        |_| true,
+        |_| db::delete_virtual_platform(&data.pool,id),
+        &[user::Role::Admin],
+        request,
+    ) else {
+      return Either::Left(HttpResponse::Forbidden().finish());
+    };
+    let Ok(_) = f.await else {
+      return Either::Left(HttpResponse::NotFound().finish());
+    };
+    Either::Right(HttpResponse::Ok().finish())
+}
+
+

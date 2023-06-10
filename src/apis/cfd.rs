@@ -283,6 +283,7 @@ mod db {
           where
             u.id = af.applicant_id and
             af.presence = true and
+            af.session_id = s.id and
             s.id = ? and
             s.cfd_id = ?
           "#,
@@ -443,7 +444,7 @@ mod db {
           cfd.id
         ).execute(pool)
         .await?
-        .rows_affected() != 1 {
+        .rows_affected() == 0 {
           return Err(sqlx::Error::RowNotFound);
         }
         Ok(())
