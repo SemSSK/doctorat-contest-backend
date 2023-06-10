@@ -11,6 +11,7 @@ async fn verify_user(user: user::User, pool: &sqlx::MySqlPool) -> Option<user::U
         user::User,
         "select 
             id as `id?`,
+            name,
             email, password as `password?`, 
             role as `role?: user::Role`,
             domaine as 'domaine?',

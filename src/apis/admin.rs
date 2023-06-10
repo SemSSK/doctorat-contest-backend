@@ -16,6 +16,7 @@ mod db {
           select 
             id as 'id?', 
             email,
+            name,
             "" as 'password?', 
             role as 'role?: user::Role',
             domaine as 'domaine?',
@@ -37,6 +38,7 @@ mod db {
         select  
           id as 'id?', 
           email, 
+          name,
           "" as 'password?', 
           role as 'role?: user::Role',
           domaine as 'domaine?',
@@ -57,6 +59,7 @@ mod db {
             r#"
             select 
               id as 'id?',
+              name,
               email, 
               "" as 'password?', 
               role as 'role?: user::Role',

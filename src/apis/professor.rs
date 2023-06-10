@@ -259,6 +259,7 @@ mod db {
             select
                 u.id as 'id?', 
                 u.email,
+                u.name,
                 "" as 'password?', 
                 u.role as 'role?: user::Role',
                 u.domaine as 'domaine?',

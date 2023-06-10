@@ -18,6 +18,7 @@ impl Claims {
         let user = User {
             id: user.id,
             email: user.email,
+            name: user.name,
             password: None,
             role: user.role,
             domaine: user.domaine,
